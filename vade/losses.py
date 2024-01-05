@@ -38,7 +38,7 @@ def transf_invariant_loss(X, mu, encoder):
         XR = torch.rot90(X, dims=(-2, -1), k=k + 1)
         mur, sigr, Zr = encoder(XR)
 
-        lossi = torch.sum(torch.square(mur - mu), dim=1)
+        lossi = KL_loss(mu, mur, sigr)
         rotloss[:, k] = lossi
 
     Linv = torch.mean(torch.sum(rotloss, dim=1))
