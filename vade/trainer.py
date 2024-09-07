@@ -9,7 +9,7 @@ from .losses import mae_loss, KL_loss, contractive_loss, transf_invariant_loss, 
 class VAE(L.LightningModule):
     def __init__(self, conv_filt, hidden, input_size, input_channels=3,
                  kl_beta=0.5, contractive_loss=False, rot_inv_loss=False,
-                 learning_rate=1.e-3, lr_decay=0.98, adam_b1=0.5, adam_b2=0.99,
+                 learning_rate=1.e-3, lr_decay=0.98, optim_params={'name': 'adam', 'betas': (0.9, 0.99)},
                  decay_freq=5
                  ):
         super().__init__()
@@ -81,10 +81,22 @@ class VAE(L.LightningModule):
 
         return mu, sig, z, gen, {'loss': total_loss, **loss}
 
+    def get_model_params(self):
+        return list(self.encoder.parameters()) + list(self.decoder.parameters())
+
     def configure_optimizers(self):
         learning_rate = self.hparams.learning_rate
 
-        optimizer = torch.optim.Adam(list(self.encoder.parameters()) + list(self.decoder.parameters()), lr=learning_rate, betas=(self.hparams.adam_b1, self.hparams.adam_b2))
+        parameters = self.get_model_params()
+        optim = self.hparams.optim_params.pop('name')
+        if optim == 'adam':
+            optimizer = torch.optim.Adam(parameters, lr=learning_rate, **self.hparams.optim_params)
+        elif optim == 'rmsprop':
+            optimizer = torch.optim.RMSprop(parameters, lr=learning_rate, **self.hparams.optim_params)
+        elif optim == 'nadam':
+            optimizer = torch.optim.NAdam(parameters, lr=learning_rate, **self.hparams.optim_params)
+        else:
+            raise ValueError(f'{self.hparams.optim_params["name"]} not implemented')
 
         lr_scheduler = ExponentialLR(optimizer, gamma=self.hparams.lr_decay)
 
@@ -123,15 +135,5 @@ class ClassVAE(VAE):
 
         return mu, sig, z, gen, {**loss, 'class_loss': class_loss.item()}
 
-    def configure_optimizers(self):
-        learning_rate = self.hparams.learning_rate
-
-        optimizer = torch.optim.Adam(list(self.encoder.parameters()) + list(self.decoder.parameters()) + list(self.classifier.parameters()), lr=learning_rate, betas=(self.hparams.adam_b1, self.hparams.adam_b2))
-
-        lr_scheduler = ExponentialLR(optimizer, gamma=self.hparams.lr_decay)
-
-        lr_scheduler_config = {"scheduler": lr_scheduler,
-                               "interval": "epoch",
-                               "frequency": self.hparams.decay_freq}
-
-        return {"optimizer": optimizer, "lr_scheduler": lr_scheduler_config}
+    def get_model_params(self):
+        return list(self.encoder.parameters()) + list(self.decoder.parameters()) + list(self.classifier.parameters())

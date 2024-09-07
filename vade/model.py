@@ -47,8 +47,10 @@ class Encoder(nn.Module):
         # self.layers.append(nn.Flatten(start_dim=1))
 
         self.layers = nn.ModuleList(self.layers)
-        self.conv_mu = nn.Sequential(nn.Conv2d(hidden[-1], hidden[-1], 1), nn.Flatten())
-        self.conv_sig = nn.Sequential(nn.Conv2d(hidden[-1], hidden[-1], 1), nn.Flatten())
+        # self.conv_mu = nn.Sequential(nn.Conv2d(hidden[-1], hidden[-1], 1), nn.Flatten())
+        # self.conv_sig = nn.Sequential(nn.Conv2d(hidden[-1], hidden[-1], 1), nn.Flatten())
+        self.conv_mu = nn.Sequential(nn.Flatten(), nn.Linear(hidden[-1] * self.final_size * self.final_size, hidden[-1] * self.final_size * self.final_size, 1))
+        self.conv_sig = nn.Sequential(nn.Flatten(), nn.Linear(hidden[-1] * self.final_size * self.final_size, hidden[-1] * self.final_size * self.final_size, 1))
 
     def forward(self, x):  # list of encoding + hidden layers
         # run the input through the layers
@@ -65,6 +67,7 @@ class Decoder(nn.Module):
         super().__init__()
         self.layers = []
 
+        self.layers.append(nn.Linear(input_channels * input_size * input_size, input_channels * input_size * input_size))
         self.layers.append(Rearrange("b (c h w) -> b c h w", h=input_size, w=input_size))
 
         filt = input_channels  # last layer of hidden- encoded_space_dim
