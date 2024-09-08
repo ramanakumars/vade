@@ -57,11 +57,11 @@ class VAE(L.LightningModule):
 
         mu, sig, z = self.encoder(img)
         gen = self.decoder(z)
-        mup, sigp, zp = self.encoder(gen)
+        # mup, sigp, zp = self.encoder(gen)
 
         loss = {}
         gen_img_loss = mae_loss(img, gen)
-        kl_loss = self.hparams.kl_beta * KL_loss(mu, sig, mup)
+        kl_loss = self.hparams.kl_beta * KL_loss(mu, sig)
 
         loss['gen_loss'] = gen_img_loss.item()
         loss['kl_loss'] = kl_loss.item()
@@ -113,15 +113,11 @@ class ClassVAE(VAE):
 
         hidden = VAE_args[1] if 'hidden' not in VAE_kwargs else VAE_kwargs['hidden']
 
-        self.classifier = nn.Sequential(
-            nn.Linear(self.encoder.final_size * self.encoder.final_size * hidden[-1], 64),
-            nn.InstanceNorm1d(64),
-            nn.Linear(64, num_classes)
-        )
+        self.classifier = nn.Linear(self.encoder.final_size * self.encoder.final_size * hidden[-1], num_classes)
 
     def forward(self, x):
         mu, sig, z = self.encoder(x)
-        return self.decoder(z), self.classifier(z)
+        return self.decoder(z), self.classifier(mu)
 
     def batch_step(self, batch):
         img, label = batch

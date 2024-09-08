@@ -5,8 +5,12 @@ def mae_loss(input, output):
     return torch.mean(torch.sum(torch.abs(input - output), dim=(1, 2, 3)))
 
 
-def KL_loss(mu, mup, sig):
-    return torch.mean(0.5 * torch.mean(-1 - sig + (torch.square(mu - mup) + torch.exp(sig)), axis=-1))
+def KL_loss(mu, log_var):
+    return torch.mean(0.5 * torch.mean(-1 - log_var + (torch.square(mu) + torch.exp(log_var)), axis=-1))
+
+
+def KL_loss_double_gaussian(mu1, log_var1, mu2):
+    return torch.mean(0.5 * torch.mean(-1 - log_var1 + (torch.square(mu1 - mu2) + torch.exp(log_var1)), axis=-1))
 
 
 def vade_loss(gamma, ZLogVar, ZMean, gamma_layer, batch_size):
@@ -38,7 +42,7 @@ def transf_invariant_loss(X, mu, encoder):
         XR = torch.rot90(X, dims=(-2, -1), k=k + 1)
         mur, sigr, Zr = encoder(XR)
 
-        lossi = KL_loss(mu, mur, sigr)
+        lossi = KL_loss_double_gaussian(mur, sigr, mu)
         rotloss[:, k] = lossi
 
     Linv = torch.mean(torch.sum(rotloss, dim=1))

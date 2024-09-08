@@ -1,0 +1,6 @@
+einops
+lightning
+numpy
+torch
+torchvision
+torchinfo
