@@ -14,8 +14,8 @@ python3 -m pip install -r requirements.txt
 ## Usage
 The model can be trained and inferred using PyTorch Lightning. Here is a basic implementation:
 ```python
-from vade.trainer import ClassVAE
-from vade.io import ZooniverseLabelGenerator
+from cvae.trainer import ClassVAE
+from cvae.io import ZooniverseLabelGenerator
 from torchinfo import summary
 from torch import Generator
 from torch.utils.data import DataLoader, random_split
